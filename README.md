@@ -1,29 +1,37 @@
-# Bruk av denne templaten
+# sf-gha-install-package
 
-1. Gå inn på `Collaberators and teams`
-    1. Sett platforce til role: maintain
-    2. Sett platforce-admin til role: admin
-    3. Fjern deg selv som admin
-2. Sjekk at ting er i henhold til [Github best practices](https://sikkerhet.nav.no/docs/sikker-utvikling/github) fra [Security Playbook](https://sikkerhet.nav.no/)
-3. Gå til `General` og se at ting ser OK ut
-4. Koble til Github prosjektet **Team Platforce**
-5. Oppdater denne readme filen (fjern denne seksjonen og fyll ut templaten under)
-6. Koble dette repoet til intern dokumentasjonen: https://github.com/navikt/team-platforce
+GitHub action for å installere en pakke i en org ved bruk av sf cli.
 
-# [Navn på action]
-
-[Beskrivelse av action]
+Forutsetter at `jq` og `sf cli` er installert
 
 ## Bruk
 
 <!-- Start usage -->
 ```yaml
-- uses: navikt/<reponame>@<tag/sha>
-    with:
-        # Description of input parameter
-        # Required: true/false
-        # Default: ''
-        input-parameter: ''
+- uses: navikt/sf-gha-install-package@<tag/sha>
+  with:
+    # Package version ID (04t...) or package alias
+    # Required: true
+    package-id: '04t...'
+    
+    # Org alias or username
+    # Required: true
+    target-org: 'my-org-alias'
+    
+    # Wait time for package install (minutes)
+    # Required: false
+    # Default: "10"
+    install-wait: '10'
+
+    # Publish wait time (minutes)
+    # Required: false
+    # Default: "10"
+    publish-wait: '10'
+
+    # Installation key for the package (if required)
+    # Required: false
+    # Default: ""
+    package-key: ${{ secrets.PACKAGE_KEY }}
 ```
 <!-- end usage -->
 

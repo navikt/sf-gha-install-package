@@ -1,17 +1,65 @@
-name: Action Name
-description: Action description
+name: Install package
+description: Install a package in the target org
 inputs:
-  input-parameter:
-    description: Description of input parameter
+  package-id:
+    description: "Package ID"
     required: true
+  target-org:
+    description: "Org alias or username"
+    required: true
+  install-wait:
+    description: "Wait time for package install (minutes)"
+    required: false
+    default: "10"
+  publish-wait:
+    description: "Publish wait time (minutes)"
+    required: false
+    default: "10"
+  package-key:
+    description: "Installation key for the package (if required)"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
     
-    - name: Authenticate org
+    - name: Install package
       run: |
-        echo "Hello World!"
-        echo "Input Parameter: $INPUT_PARAMETER"
+        set -euo pipefail
+
+        cleanup() { rm -f output.json; }
+        trap cleanup EXIT
+
+        if [[ ! "$INPUTS_PACKAGE_ID" =~ ^04t[0-9A-Za-z]{15}$ ]]; then
+          echo "::error::Invalid package ID format"
+          exit 1
+        fi
+
+        command=("sf" "package" "install" "--package" "$INPUTS_PACKAGE_ID" "--target-org" "$INPUTS_TARGET_ORG" "--wait" "$INPUTS_INSTALL_WAIT" "--publish-wait" "$INPUTS_PUBLISH_WAIT" "--no-prompt" "--json")
+
+        echo "Command to execute: ${command[*]}"
+
+        if [ -n "$INPUTS_PACKAGE_KEY" ]; then
+          # Mask the installation key explicitly (will also be masked if sourced from secrets)
+          echo "::add-mask::$INPUTS_PACKAGE_KEY"
+          echo "Installation key provided."
+          command+=("--installation-key" "$INPUTS_PACKAGE_KEY")
+        fi
+
+        "${command[@]}" | tee output.json
+        
+        STATUS=$(jq -r '.status' output.json)
+        if [ "$STATUS" = "0" ]; then
+          echo "Successfully installed package."
+        else
+          MESSAGE=$(jq -r '.message // "Unknown error"' output.json)
+          echo "::error title=Package installation failed.::$MESSAGE"
+          exit 1
+        fi
       shell: bash
       env:
-        INPUT_PARAMETER: ${{ inputs.input-parameter }}
+        INPUTS_TARGET_ORG: ${{ inputs.target-org }}
+        INPUTS_PACKAGE_ID: ${{ inputs.package-id }}
+        INPUTS_INSTALL_WAIT: ${{ inputs.install-wait }}
+        INPUTS_PUBLISH_WAIT: ${{ inputs.publish-wait }}
+        INPUTS_PACKAGE_KEY: ${{ inputs.package-key }}
